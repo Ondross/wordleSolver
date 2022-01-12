@@ -71,17 +71,20 @@ while attempts < 20:
         print("Done")
         break
 
+    # TODO: right now, this assumes hard mode. If we don't reset this every time, we could use past yellows, but it's not so simple.
     minNumEachLetter = dict()
     if answer:
         greens, minNumEachLetter = updateGreensEtc(guess, answer, maxNumEachLetter)
     else:
-        print("Input result")
+        print("Input result:")
         colors = input()
 
+        # If they enter an empty string, assume that wordle didn't accept the guess as a real word, and try again.
         if not colors:
             englishWords.remove(guess)
             continue
 
+        # Update running list of greens, running
         for idx, color in enumerate(colors):
             if color.lower() == "g":
                 greens[idx] = guess[idx]
