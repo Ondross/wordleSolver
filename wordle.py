@@ -4,9 +4,9 @@ from allWords import sortedEnglishWords as englishWords
 class GameState(object):
     def __init__(self, englishWords, answer):
         self.knownCorrect = ['*'] * 5     # green letters
-        self.minLetterCounts = dict()   # yellow letters
+        self.minLetterCounts = dict()     # yellow letters
         self.exactLetterCounts = dict()   # accumulation of greys
-        self.answer = answer               # optional known answer
+        self.answer = answer              # optional known answer
         self.words = englishWords
 
     def guess(self):
@@ -17,8 +17,9 @@ class GameState(object):
 
     def printState(self):
         print("".join(self.knownCorrect).upper())
-        print("Letters present: " + str(self.minLetterCounts))
-        print("Known counts: " + str(self.exactLetterCounts))
+        print("Minimum letter frequencies: " + str(self.minLetterCounts))
+        print("Exact letter frequencies: " + str({key:value for (key,value) in self.exactLetterCounts.items() if value > 0}))
+        print("Letters not present: " + str({key:value for (key,value) in self.exactLetterCounts.items() if value == 0}))
         if (len(self.words) < 5):
             plural = ' candidates' if len(self.words) > 1 else ' candidate'
             print(str(len(self.words)) + plural + " remaining: " + ', '.join(self.words))
