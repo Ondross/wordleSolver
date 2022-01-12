@@ -64,12 +64,8 @@ greens = [None] * 5
 while attempts < 20:
     guess = random.choice(englishWords)
 
-    print("Attempt " + str(attempts))
+    print("Attempt " + str(attempts + 1))
     print("Guess: " + guess)
-
-    if (len(englishWords) == 1):
-        print("Done")
-        break
 
     # TODO: right now, this assumes hard mode. If we don't reset this every time, we could use past yellows, but it's not so simple.
     minNumEachLetter = dict()
@@ -100,6 +96,11 @@ while attempts < 20:
     print("Min letter counts: " + str(minNumEachLetter))
     print("Max letter counts: " + str(maxNumEachLetter))
     print("Num candidates remaining: " + str(len(englishWords)))
+
+    if (len(englishWords) == 1):
+        print("Done")
+        break
+
     if (len(englishWords) < 5):
         print(englishWords)
     print("\n\n")
