@@ -97,11 +97,12 @@ while attempts < 20:
     print("Max letter counts: " + str(maxNumEachLetter))
     print("Num candidates remaining: " + str(len(englishWords)))
 
+    if (len(englishWords) < 5):
+        print(englishWords)
+
     if (len(englishWords) == 1):
         print("Done")
         break
 
-    if (len(englishWords) < 5):
-        print(englishWords)
     print("\n\n")
 
