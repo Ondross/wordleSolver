@@ -53,6 +53,8 @@ def updateGreensEtc(guess, answer, maxNumEachLetter):
 answer = None
 if (len(sys.argv) > 1):
     answer = sys.argv[1]
+else:
+    print("You'll have to enter your own results from the wordle app. Use G, B, and Y.")
 
 attempts = 0
 minNumEachLetter = {}
@@ -73,7 +75,7 @@ while attempts < 20:
     if answer:
         greens, minNumEachLetter = updateGreensEtc(guess, answer, maxNumEachLetter)
     else:
-        print("input your result, with GBY for green, black, yellow. blank string if the word isn't allowed.")
+        print("Input result")
         colors = input()
 
         if not colors:
