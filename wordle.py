@@ -18,7 +18,7 @@ class GameState(object):
     def printState(self):
         print("Greens: " + str(self.knownCorrect))
         print("Min letter counts: " + str(self.minLetterCounts))
-        print("Max letter counts: " + str(self.exactLetterCounts))
+        print("Exact letter counts: " + str(self.exactLetterCounts))
         print("Num candidates remaining: " + str(len(self.words)))
         if (len(self.words) < 5):
             print(self.words)
