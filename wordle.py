@@ -4,22 +4,26 @@ from allWords import sortedEnglishWords as englishWords
 class GameState(object):
     def __init__(self, answer):
         self.knownCorrect = [None] * 5  # green letters
-        self.minLetterCounts = dict()   # yellow letters
-        self.maxLetterCounts = dict()   # accumulation of greys
-        self.answer = answer
+        self.minLetterInstances = dict()   # yellow letters
+        self.maxLetterInstances = dict()   # accumulation of greys
+        self.answer = answer            # optional
 
     def wordAllowed(self, word):
         """ Check if a word is allowed based on the game state """
+
+        # All green letters must be present
         for idx, letter in enumerate(self.knownCorrect):
             if letter and word[idx] != letter:
                 return False
 
-        for letter in self.maxLetterCounts:
-            if word.count(letter) > self.maxLetterCounts[letter]:
+        # All yellow letters must be present (and we might need more than 1)
+        for letter in self.minLetterInstances:
+            if word.count(letter) < self.minLetterInstances[letter]:
                 return False
 
-        for letter in self.minLetterCounts:
-            if word.count(letter) < self.minLetterCounts[letter]:
+        # If we've seen grey letters, we know exactly the count of that letter (doesn't mean it's 0 though)
+        for letter in self.maxLetterInstances:
+            if word.count(letter) > self.maxLetterInstances[letter]:
                 return False
 
         return True
@@ -28,34 +32,34 @@ class GameState(object):
         print("Input result:")
         colors = input()
 
-        self.minLetterCounts = dict()
+        self.minLetterInstances = dict()
         for idx, color in enumerate(colors):
             if color.lower() == "g":
                 self.knownCorrect[idx] = guess[idx]
             elif color.lower() == "y":
-                self.minLetterCounts.setdefault(guess[idx], 0)
-                self.minLetterCounts[guess[idx]] += 1
+                self.minLetterInstances.setdefault(guess[idx], 0)
+                self.minLetterInstances[guess[idx]] += 1
             else:
-                self.maxLetterCounts[guess[idx]] = self.minLetterCounts.get(guess[idx]) or 0
+                self.maxLetterInstances[guess[idx]] = self.minLetterInstances.get(guess[idx]) or 0
 
     def update(self, guess):
         """ Only used when we already know the answer and we're just demonstrating the program. """
-        self.minLetterCounts = {}
+        self.minLetterInstances = {}
         tempAnswer = self.answer
         for idx, letter in enumerate(guess):
             if tempAnswer[idx] == letter:
                 self.knownCorrect[idx] = letter
                 tempAnswer = tempAnswer.replace(letter, '*')
-                self.minLetterCounts.setdefault(letter, 0)
-                self.minLetterCounts[letter] += 1
+                self.minLetterInstances.setdefault(letter, 0)
+                self.minLetterInstances[letter] += 1
 
         for letter in guess:
             if tempAnswer.find(letter) >= 0:
                 tempAnswer = tempAnswer.replace(letter, '')
-                self.minLetterCounts.setdefault(letter, 0)
-                self.minLetterCounts[letter] += 1
+                self.minLetterInstances.setdefault(letter, 0)
+                self.minLetterInstances[letter] += 1
             else:
-                self.maxLetterCounts[letter] = self.minLetterCounts.get(letter) or 0
+                self.maxLetterInstances[letter] = self.minLetterInstances.get(letter) or 0
 
 # Two modes.
 # If answer is provided in args, this runs automatically.
@@ -87,8 +91,8 @@ while attempts < 20:
     attempts += 1
 
     print("Greens: " + str(gameState.knownCorrect))
-    print("Min letter counts: " + str(gameState.minLetterCounts))
-    print("Max letter counts: " + str(gameState.maxLetterCounts))
+    print("Min letter counts: " + str(gameState.minLetterInstances))
+    print("Max letter counts: " + str(gameState.maxLetterInstances))
     print("Num candidates remaining: " + str(len(englishWords)))
 
     if (len(englishWords) < 5):
