@@ -102,8 +102,7 @@ while attempts < 20:
     print("\n\n")
     attempts += 1
     guess = gameState.guess()
-    print("Attempt " + str(attempts))
-    print(guess.upper())
+    print(str(attempts) + ": " + guess.upper())
     
     if answer:
         gameState.autoUpdateState(guess)
