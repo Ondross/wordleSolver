@@ -1,3 +1,6 @@
+# usage:
+# python wordle.py hardMode knownAnswer
+
 import sys
 from allWords import englishWords
 from functools import cmp_to_key
@@ -5,40 +8,55 @@ from functools import cmp_to_key
 letters = "abcdefghijklmnopqrstuvwxyz"
 
 
-def sortCandidates(word1, word2):
-    return gameState.wordUsefulness(word2) - gameState.wordUsefulness(word1)
-
 class GameState(object):
-    def __init__(self, allWords, answer):
+    def __init__(self, allWords, answer=None, hardMode=False):
         self.knownCorrect = ['*'] * 5     # green letters
         self.minLetterCounts = dict()     # yellow letters
         self.exactLetterCounts = dict()   # accumulation of greys
         self.answer = answer              # optional known answer
-        self.candidates = allWords.copy()
-        self.allWords = allWords
+        self.allWords = sorted(allWords, key=cmp_to_key(lambda a, b: self.sortCandidates(a, b)))
+        self.candidates = self.allWords.copy()
+        self.hardMode = hardMode
 
     def guess(self):
-        if len(self.candidates) < 50:
+        """
+        Easy mode lets us focus on gathering intel instead of using what we already know.
+        At some point (arbitrarily 5 candidates left), it makes sense to start putting letters
+        where we know they belong in hopes of getting the answer right.
+        Hard mode requires us to use words that match, and forego some opportunities for learning.
+        """
+        if len(self.candidates) < 5 or self.hardMode:
             return self.candidates[0]
         else:
-            mostUseful = sorted(englishWords, key=cmp_to_key(sortCandidates))
+            mostUseful = sorted(self.allWords, key=cmp_to_key(lambda a, b: self.sortCandidates(a, b)))
             return mostUseful[0]
 
-    def unknownLetters(self):
-        missing = letters
-        for letter in list(self.exactLetterCounts.keys()) + list(self.minLetterCounts.keys()) + self.knownCorrect:
-            missing = missing.replace(letter, '')
+    def letterMultipliers(self):
+        """ When picking a word, letters are less valuable the more we already know about them. """
+        """ These numbers are admittedly pretty random. """
+        multipliers = {letter:1 for letter in letters}
 
-        return set(missing)
+        for letter in self.exactLetterCounts:
+            multipliers[letter] = 0
+        for letter in self.minLetterCounts:
+            multipliers[letter] = .9
+        for letter in self.knownCorrect:
+            multipliers[letter] = .5
+
+        return multipliers
+
+
+    def sortCandidates(self, word1, word2):
+        return self.wordUsefulness(word2) - self.wordUsefulness(word1)
 
     def wordUsefulness(self, word, debug=False):
         # for each letter that we don't have info about, a word gets points relative to how common the letter is in english
         valuableLetters = "qjzxvkwyfbghmpduclsntoirae"
         letters = set(word) # don't value duplicates
         score = 0
-
-        for letter in letters & self.unknownLetters():
-            score += valuableLetters.find(letter)
+        multipliers = self.letterMultipliers()
+        for letter in letters:
+            score += valuableLetters.find(letter) * multipliers[letter]
 
         return score
 
@@ -124,12 +142,16 @@ class GameState(object):
 #
 
 answer = None
+hardMode = False
 if (len(sys.argv) > 1):
-    answer = sys.argv[1]
+    hardMode = sys.argv[1].lower() == "hard"
+if (len(sys.argv) > 2):
+    answer = sys.argv[2]
 else:
     print("You'll have to enter the results from the wordle app. Use G, B, and Y.")
 
-gameState = GameState(englishWords, answer)
+
+gameState = GameState(englishWords, answer, hardMode)
 attempts = 0
 
 while attempts < 7:
