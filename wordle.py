@@ -30,7 +30,7 @@ class GameState(object):
         self.words = [word for word in self.words if self.wordAllowed(word)]
 
     def wordAllowed(self, word):
-        """ Determine if a word fits what we know about the Wordle solution """
+        """ Determine if a word matches with the info that we know about the Wordle solution """
 
         # All green letters must be present
         for idx, letter in enumerate(self.knownCorrect):
