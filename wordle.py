@@ -1,16 +1,46 @@
 import sys
-from allWords import sortedEnglishWords as englishWords
+from allWords import englishWords
+from functools import cmp_to_key
+
+letters = "abcdefghijklmnopqrstuvwxyz"
+
+
+def sortCandidates(word1, word2):
+    return gameState.wordUsefulness(word2) - gameState.wordUsefulness(word1)
 
 class GameState(object):
-    def __init__(self, englishWords, answer):
+    def __init__(self, allWords, answer):
         self.knownCorrect = ['*'] * 5     # green letters
         self.minLetterCounts = dict()     # yellow letters
         self.exactLetterCounts = dict()   # accumulation of greys
         self.answer = answer              # optional known answer
-        self.words = englishWords
+        self.candidates = allWords.copy()
+        self.allWords = allWords
 
     def guess(self):
-        return self.words[0]
+        if len(self.candidates) < 50:
+            return self.candidates[0]
+        else:
+            mostUseful = sorted(englishWords, key=cmp_to_key(sortCandidates))
+            return mostUseful[0]
+
+    def unknownLetters(self):
+        missing = letters
+        for letter in list(self.exactLetterCounts.keys()) + list(self.minLetterCounts.keys()) + self.knownCorrect:
+            missing = missing.replace(letter, '')
+
+        return set(missing)
+
+    def wordUsefulness(self, word, debug=False):
+        # for each letter that we don't have info about, a word gets points relative to how common the letter is in english
+        valuableLetters = "qjzxvkwyfbghmpduclsntoirae"
+        letters = set(word) # don't value duplicates
+        score = 0
+
+        for letter in letters & self.unknownLetters():
+            score += valuableLetters.find(letter)
+
+        return score
 
     def done(self):
         return self.knownCorrect.count('*') == 0
@@ -20,14 +50,14 @@ class GameState(object):
         print("Minimum letter frequencies: " + str(self.minLetterCounts))
         print("Exact letter frequencies: " + str({key:value for (key,value) in self.exactLetterCounts.items() if value > 0}))
         print("Letters not present: " + str({key:value for (key,value) in self.exactLetterCounts.items() if value == 0}))
-        if (len(self.words) < 5):
-            plural = ' candidates' if len(self.words) > 1 else ' candidate'
-            print(str(len(self.words)) + plural + " remaining: " + ', '.join(self.words))
+        if (len(self.candidates) < 5):
+            plural = ' candidates' if len(self.candidates) > 1 else ' candidate'
+            print(str(len(self.candidates)) + plural + " remaining: " + ', '.join(self.candidates))
         else:
-            print(str(len(self.words)) + " candidates remaining")
+            print(str(len(self.candidates)) + " candidates remaining")
 
     def filterWords(self):
-        self.words = [word for word in self.words if self.wordAllowed(word)]
+        self.candidates = [word for word in self.candidates if self.wordAllowed(word)]
 
     def wordAllowed(self, word):
         """ Determine if a word matches with the info that we know about the Wordle solution """
@@ -57,15 +87,19 @@ class GameState(object):
         print("Input result:")
         colors = input()
 
-        self.minLetterCounts = dict()
+        # make a temp version of this dict based only on the information we're getting here.
+        tempMinLetterCounts = dict()
         for idx, color in enumerate(colors):
             if color.lower() == "g":
                 self.knownCorrect[idx] = guess[idx]
             elif color.lower() == "y":
-                self.minLetterCounts.setdefault(guess[idx], 0)
-                self.minLetterCounts[guess[idx]] += 1
+                tempMinLetterCounts.setdefault(guess[idx], 0)
+                tempMinLetterCounts[guess[idx]] += 1
             else:
-                self.exactLetterCounts[guess[idx]] = self.minLetterCounts.get(guess[idx]) or 0
+                self.exactLetterCounts[guess[idx]] = tempMinLetterCounts.get(guess[idx]) or 0
+
+        for key in tempMinLetterCounts:
+            self.minLetterCounts[key] = max(self.minLetterCounts.get(key), tempMinLetterCounts[key])
 
     def autoUpdateState(self, guess):
         """ Only used when we already know the answer and we're just demonstrating the program. """
@@ -98,7 +132,7 @@ else:
 gameState = GameState(englishWords, answer)
 attempts = 0
 
-while attempts < 20:
+while attempts < 7:
     print("\n\n")
     attempts += 1
     guess = gameState.guess()
