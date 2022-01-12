@@ -63,6 +63,7 @@ greens = [None] * 5
 while attempts < 20:
     guess = englishWords[0]
 
+
     print("Attempt " + str(attempts + 1))
     print("Guess: " + guess)
 
@@ -88,6 +89,11 @@ while attempts < 20:
                 minNumEachLetter[guess[idx]] += 1
             else:
                 maxNumEachLetter[guess[idx]] = minNumEachLetter.get(guess[idx]) or 0
+
+    if greens.count(None) == 0:
+        print("Done!")
+        break
+
     englishWords = [word for word in englishWords if wordAllowed(word, greens, minNumEachLetter, maxNumEachLetter)]
     attempts += 1
 
@@ -98,10 +104,6 @@ while attempts < 20:
 
     if (len(englishWords) < 5):
         print(englishWords)
-
-    if (len(englishWords) == 1):
-        print("Done")
-        break
 
     print("\n\n")
 
