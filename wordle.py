@@ -1,105 +1,94 @@
 import sys
-import random
 from allWords import sortedEnglishWords as englishWords
 
-# import re
-# pattern = re.compile("[a-z]+")
-# englishWords = list()
-# for line in open('english-words.txt'):
-#     englishWords = englishWords + [word.strip().lower() for word in line.split() if len(word.strip()) == 5 and pattern.fullmatch(word.strip().lower())]
+class GameState(object):
+    def __init__(self, answer):
+        self.knownCorrect = [None] * 5  # green letters
+        self.minLetterCounts = dict()   # yellow letters
+        self.maxLetterCounts = dict()   # accumulation of greys
+        self.answer = answer
 
-# used to filter list of possible words
-def wordAllowed(word, greens, minNumEachLetter, maxNumEachLetter):
-    for idx, letter in enumerate(greens):
-        if letter and word[idx] != letter:
-            return False
+    def wordAllowed(self, word):
+        """ Check if a word is allowed based on the game state """
+        for idx, letter in enumerate(self.knownCorrect):
+            if letter and word[idx] != letter:
+                return False
 
-    for letter in maxNumEachLetter:
-        if word.count(letter) > maxNumEachLetter[letter]:
-            return False
+        for letter in self.maxLetterCounts:
+            if word.count(letter) > self.maxLetterCounts[letter]:
+                return False
 
-    for letter in minNumEachLetter:
-        if word.count(letter) < minNumEachLetter[letter]:
-            return False
+        for letter in self.minLetterCounts:
+            if word.count(letter) < self.minLetterCounts[letter]:
+                return False
 
-    return True
+        return True
 
+    def promptForResult(self):
+        print("Input result:")
+        colors = input()
 
-# this is only used when we already know the answer and we're just demonstrating the program.
-def updateGreensEtc(guess, answer, maxNumEachLetter):
-    minNumEachLetter = {}
-    greens = [None] * len(answer)
-    for idx, letter in enumerate(guess):
-        if answer[idx] == letter:
-            greens[idx] = letter
-            answer = answer.replace(letter, '*')
-            minNumEachLetter.setdefault(letter, 0)
-            minNumEachLetter[letter] += 1
+        self.minLetterCounts = dict()
+        for idx, color in enumerate(colors):
+            if color.lower() == "g":
+                self.knownCorrect[idx] = guess[idx]
+            elif color.lower() == "y":
+                self.minLetterCounts.setdefault(guess[idx], 0)
+                self.minLetterCounts[guess[idx]] += 1
+            else:
+                self.maxLetterCounts[guess[idx]] = self.minLetterCounts.get(guess[idx]) or 0
 
-    for letter in guess:
-        if answer.find(letter) >= 0:
-            answer = answer.replace(letter, '')
-            minNumEachLetter.setdefault(letter, 0)
-            minNumEachLetter[letter] += 1
-        else:
-            maxNumEachLetter[letter] = minNumEachLetter.get(letter) or 0
+    def update(self, guess):
+        """ Only used when we already know the answer and we're just demonstrating the program. """
+        self.minLetterCounts = {}
+        tempAnswer = self.answer
+        for idx, letter in enumerate(guess):
+            if tempAnswer[idx] == letter:
+                self.knownCorrect[idx] = letter
+                tempAnswer = tempAnswer.replace(letter, '*')
+                self.minLetterCounts.setdefault(letter, 0)
+                self.minLetterCounts[letter] += 1
 
-    return greens, minNumEachLetter
+        for letter in guess:
+            if tempAnswer.find(letter) >= 0:
+                tempAnswer = tempAnswer.replace(letter, '')
+                self.minLetterCounts.setdefault(letter, 0)
+                self.minLetterCounts[letter] += 1
+            else:
+                self.maxLetterCounts[letter] = self.minLetterCounts.get(letter) or 0
 
 # Two modes.
 # If answer is provided in args, this runs automatically.
-# Otherwise, we don't know the answer, and we need to ask the user for greens, yellows, etc.
+# Otherwise, we don't know the answer, and we need to ask the user for knownCorrect, yellows, etc.
 answer = None
 if (len(sys.argv) > 1):
     answer = sys.argv[1]
 else:
     print("You'll have to enter your own results from the wordle app. Use G, B, and Y.")
 
+gameState = GameState(answer)
 attempts = 0
-minNumEachLetter = {}
-maxNumEachLetter = {}
-greens = [None] * 5
 
 while attempts < 20:
     guess = englishWords[0]
-
-
     print("Attempt " + str(attempts + 1))
     print("Guess: " + guess)
-
-    # TODO: right now, this assumes hard mode. If we don't reset this every time, we could use past yellows, but it's not so simple.
-    minNumEachLetter = dict()
+    
     if answer:
-        greens, minNumEachLetter = updateGreensEtc(guess, answer, maxNumEachLetter)
+        gameState.update(guess)
     else:
-        print("Input result:")
-        colors = input()
+        gameState.promptForResult()
 
-        # If they enter an empty string, assume that wordle didn't accept the guess as a real word, and try again.
-        if not colors:
-            englishWords.remove(guess)
-            continue
-
-        # Update running list of greens, running
-        for idx, color in enumerate(colors):
-            if color.lower() == "g":
-                greens[idx] = guess[idx]
-            elif color.lower() == "y":
-                minNumEachLetter.setdefault(guess[idx], 0)
-                minNumEachLetter[guess[idx]] += 1
-            else:
-                maxNumEachLetter[guess[idx]] = minNumEachLetter.get(guess[idx]) or 0
-
-    if greens.count(None) == 0:
+    if gameState.knownCorrect.count(None) == 0:
         print("Done!")
         break
 
-    englishWords = [word for word in englishWords if wordAllowed(word, greens, minNumEachLetter, maxNumEachLetter)]
+    englishWords = [word for word in englishWords if gameState.wordAllowed(word)]
     attempts += 1
 
-    print("Greens: " + str(greens))
-    print("Min letter counts: " + str(minNumEachLetter))
-    print("Max letter counts: " + str(maxNumEachLetter))
+    print("Greens: " + str(gameState.knownCorrect))
+    print("Min letter counts: " + str(gameState.minLetterCounts))
+    print("Max letter counts: " + str(gameState.maxLetterCounts))
     print("Num candidates remaining: " + str(len(englishWords)))
 
     if (len(englishWords) < 5):
