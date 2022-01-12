@@ -97,8 +97,8 @@ while attempts < 20:
     attempts += 1
 
     print("Greens: " + str(greens))
-    print("Known min letter counts: " + str(minNumEachLetter))
-    print("Known max letter counts: " + str(maxNumEachLetter))
+    print("Min letter counts: " + str(minNumEachLetter))
+    print("Max letter counts: " + str(maxNumEachLetter))
     print("Num candidates remaining: " + str(len(englishWords)))
     if (len(englishWords) < 5):
         print(englishWords)
