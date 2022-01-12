@@ -4,8 +4,8 @@ from allWords import sortedEnglishWords as englishWords
 class GameState(object):
     def __init__(self, englishWords, answer):
         self.knownCorrect = [None] * 5     # green letters
-        self.minLetterInstances = dict()   # yellow letters
-        self.maxLetterInstances = dict()   # accumulation of greys
+        self.minLetterCounts = dict()   # yellow letters
+        self.exactLetterCounts = dict()   # accumulation of greys
         self.answer = answer               # optional known answer
         self.words = englishWords
 
@@ -17,13 +17,11 @@ class GameState(object):
 
     def printState(self):
         print("Greens: " + str(self.knownCorrect))
-        print("Min letter counts: " + str(self.minLetterInstances))
-        print("Max letter counts: " + str(self.maxLetterInstances))
+        print("Min letter counts: " + str(self.minLetterCounts))
+        print("Max letter counts: " + str(self.exactLetterCounts))
         print("Num candidates remaining: " + str(len(self.words)))
-
         if (len(self.words) < 5):
             print(self.words)
-
         print("\n\n")
 
     def filterWords(self):
@@ -38,13 +36,13 @@ class GameState(object):
                 return False
 
         # All yellow letters must be present (and we might need more than 1)
-        for letter in self.minLetterInstances:
-            if word.count(letter) < self.minLetterInstances[letter]:
+        for letter in self.minLetterCounts:
+            if word.count(letter) < self.minLetterCounts[letter]:
                 return False
 
         # If we've seen grey letters, we know exactly the count of that letter (doesn't mean it's 0 though)
-        for letter in self.maxLetterInstances:
-            if word.count(letter) > self.maxLetterInstances[letter]:
+        for letter in self.exactLetterCounts:
+            if word.count(letter) != self.exactLetterCounts[letter]:
                 return False
 
         return True
@@ -57,34 +55,34 @@ class GameState(object):
         print("Input result:")
         colors = input()
 
-        self.minLetterInstances = dict()
+        self.minLetterCounts = dict()
         for idx, color in enumerate(colors):
             if color.lower() == "g":
                 self.knownCorrect[idx] = guess[idx]
             elif color.lower() == "y":
-                self.minLetterInstances.setdefault(guess[idx], 0)
-                self.minLetterInstances[guess[idx]] += 1
+                self.minLetterCounts.setdefault(guess[idx], 0)
+                self.minLetterCounts[guess[idx]] += 1
             else:
-                self.maxLetterInstances[guess[idx]] = self.minLetterInstances.get(guess[idx]) or 0
+                self.exactLetterCounts[guess[idx]] = self.minLetterCounts.get(guess[idx]) or 0
 
     def autoUpdateState(self, guess):
         """ Only used when we already know the answer and we're just demonstrating the program. """
-        self.minLetterInstances = {}
+        self.minLetterCounts = {}
         tempAnswer = self.answer
         for idx, letter in enumerate(guess):
             if tempAnswer[idx] == letter:
                 self.knownCorrect[idx] = letter
-                tempAnswer = tempAnswer.replace(letter, '*')
-                self.minLetterInstances.setdefault(letter, 0)
-                self.minLetterInstances[letter] += 1
+                tempAnswer = tempAnswer.replace(letter, '*', 1)
+                self.minLetterCounts.setdefault(letter, 0)
+                self.minLetterCounts[letter] += 1
 
         for letter in guess:
             if tempAnswer.find(letter) >= 0:
-                tempAnswer = tempAnswer.replace(letter, '')
-                self.minLetterInstances.setdefault(letter, 0)
-                self.minLetterInstances[letter] += 1
+                tempAnswer = tempAnswer.replace(letter, '', 1)
+                self.minLetterCounts.setdefault(letter, 0)
+                self.minLetterCounts[letter] += 1
             else:
-                self.maxLetterInstances[letter] = self.minLetterInstances.get(letter) or 0
+                self.exactLetterCounts[letter] = self.minLetterCounts.get(letter) or 0
 
 #
 # Two modes.
