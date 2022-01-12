@@ -1,6 +1,6 @@
 import sys
 import random
-from allWords import englishWords
+from allWords import sortedEnglishWords as englishWords
 
 # import re
 # pattern = re.compile("[a-z]+")
@@ -23,6 +23,7 @@ def wordAllowed(word, greens, minNumEachLetter, maxNumEachLetter):
             return False
 
     return True
+
 
 # this is only used when we already know the answer and we're just demonstrating the program.
 def updateGreensEtc(guess, answer, maxNumEachLetter):
@@ -60,7 +61,7 @@ maxNumEachLetter = {}
 greens = [None] * 5
 
 while attempts < 20:
-    guess = random.choice(englishWords)
+    guess = englishWords[0]
 
     print("Attempt " + str(attempts + 1))
     print("Guess: " + guess)
