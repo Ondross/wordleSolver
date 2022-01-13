@@ -117,7 +117,7 @@ class GameState(object):
                 self.exactLetterCounts[guess[idx]] = tempMinLetterCounts.get(guess[idx]) or 0
 
         for key in tempMinLetterCounts:
-            self.minLetterCounts[key] = max(self.minLetterCounts.get(key), tempMinLetterCounts[key])
+            self.minLetterCounts[key] = max(self.minLetterCounts.get(key) or 0, tempMinLetterCounts[key])
 
     def autoUpdateState(self, guess):
         """ Only used when we already know the answer and we're just demonstrating the program. """
