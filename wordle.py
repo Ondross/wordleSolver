@@ -57,7 +57,11 @@ class GameState(object):
         score = 0
         multipliers = self.letterMultipliers()
         for letter in letters:
-            score += valuableLetters.find(letter) * multipliers[letter]
+            if letter not in self.wrongLocations[word.find(letter)]:
+                score += valuableLetters.find(letter) * multipliers[letter]
+
+            # if (word.lower() == 'scone' and letter == 'e'):
+            #     print(idx, letters, letter, letter in self.wrongLocations[idx])
 
         return score
 
