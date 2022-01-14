@@ -155,34 +155,38 @@ class GameState(object):
 # Otherwise, we don't know the answer, and we need to ask the user for knownCorrect, yellows, etc.
 #
 
-answer = None
-hardMode = False
-if (len(sys.argv) > 1):
-    hardMode = sys.argv[1].lower() == "hard"
-if (len(sys.argv) > 2):
-    answer = sys.argv[2]
-else:
-    print("You'll have to enter the results from the wordle app. Use G, B, and Y.")
+def run(answer, hardMode):
+
+    gameState = GameState(englishWords, answer, hardMode)
+    attempts = 0
+
+    while attempts < 20:
+        print("\n\n")
+        attempts += 1
+        guess = gameState.guess()
+        print(str(attempts) + ": " + guess.upper())
+
+        if answer:
+            gameState.autoUpdateState(guess)
+        else:
+            gameState.promptForResult()
+
+        if gameState.done():
+            print("\nDone!\n")
+            break
+
+        gameState.filterWords()
+        gameState.printState()
 
 
-gameState = GameState(englishWords, answer, hardMode)
-attempts = 0
 
-while attempts < 7:
-    print("\n\n")
-    attempts += 1
-    guess = gameState.guess()
-    print(str(attempts) + ": " + guess.upper())
-    
-    if answer:
-        gameState.autoUpdateState(guess)
+if __name__ == "__main__":
+    answer = None
+    hardMode = False
+    if (len(sys.argv) > 1):
+        hardMode = sys.argv[1].lower() == "hard"
+    if (len(sys.argv) > 2):
+        answer = sys.argv[2]
     else:
-        gameState.promptForResult()
-
-    if gameState.done():
-        print("\nDone!\n")
-        break
-
-    gameState.filterWords()
-    gameState.printState()
-
+        print("You'll have to enter the results from the wordle app. Use G, B, and Y.")
+    run(answer, hardMode)
