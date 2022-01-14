@@ -11,6 +11,7 @@ letters = "abcdefghijklmnopqrstuvwxyz"
 class GameState(object):
     def __init__(self, allWords, answer=None, hardMode=False):
         self.knownCorrect = ['*'] * 5     # green letters
+        self.wrongLocations = [list() for i in range(5)]  # lists of letters not at that list's index
         self.minLetterCounts = dict()     # yellow letters
         self.exactLetterCounts = dict()   # accumulation of greys
         self.answer = answer              # optional known answer
@@ -66,6 +67,7 @@ class GameState(object):
     def printState(self):
         print("".join(self.knownCorrect).upper())
         print("Minimum letter frequencies: " + str(self.minLetterCounts))
+        print("Wrong Locations: " + str(self.wrongLocations))
         print("Exact letter frequencies: " + str({key:value for (key,value) in self.exactLetterCounts.items() if value > 0}))
         print("Letters not present: " + str({key:value for (key,value) in self.exactLetterCounts.items() if value == 0}))
         if (len(self.candidates) < 5):
@@ -88,6 +90,11 @@ class GameState(object):
         # All yellow letters must be present (and we might need more than 1)
         for letter in self.minLetterCounts:
             if word.count(letter) < self.minLetterCounts[letter]:
+                return False
+
+        # No letters can be in a known wrong index
+        for idx, letterList in enumerate(self.wrongLocations):
+            if word[idx] in letterList:
                 return False
 
         # If we've seen grey letters, we know exactly the count of that letter (doesn't mean it's 0 though)
@@ -113,6 +120,7 @@ class GameState(object):
             elif color.lower() == "y":
                 tempMinLetterCounts.setdefault(guess[idx], 0)
                 tempMinLetterCounts[guess[idx]] += 1
+                self.wrongLocations[idx].append(guess[idx])
             else:
                 self.exactLetterCounts[guess[idx]] = tempMinLetterCounts.get(guess[idx]) or 0
 
@@ -127,11 +135,13 @@ class GameState(object):
                 self.knownCorrect[idx] = letter
 
         tempAnswer = self.answer
-        for letter in guess:
+        for idx, letter in enumerate(guess):
             if tempAnswer.find(letter) >= 0:
                 tempAnswer = tempAnswer.replace(letter, '', 1)
                 self.minLetterCounts.setdefault(letter, 0)
                 self.minLetterCounts[letter] += 1
+                if self.answer[idx] != letter:
+                    self.wrongLocations[idx].append(letter)
             else:
                 self.exactLetterCounts[letter] = self.minLetterCounts.get(letter) or 0
 
