@@ -149,22 +149,24 @@ class GameState(object):
             else:
                 self.exactLetterCounts[letter] = self.minLetterCounts.get(letter) or 0
 
-#
-# Two modes.
-# If answer is provided in args, this runs automatically.
-# Otherwise, we don't know the answer, and we need to ask the user for knownCorrect, yellows, etc.
-#
 
-def run(answer, hardMode):
-
+def run(answer, hardMode, printStats=True):
+    """
+        answer:
+            if provided the game guesses runs automatically by self-evaluating
+            if None, user must provide green/yellow/black inputs via wordle sit.
+        hardMode:
+            if True, the bot is required to use information it has learned
+            if False, the bot can optimize for gathering information over using known-correct letters
+    """
     gameState = GameState(englishWords, answer, hardMode)
     attempts = 0
 
     while attempts < 20:
-        print("\n\n")
+        printStats and print("\n\n")
         attempts += 1
         guess = gameState.guess()
-        print(str(attempts) + ": " + guess.upper())
+        printStats and print(str(attempts) + ": " + guess.upper())
 
         if answer:
             gameState.autoUpdateState(guess)
@@ -172,11 +174,12 @@ def run(answer, hardMode):
             gameState.promptForResult()
 
         if gameState.done():
-            print("\nDone!\n")
+            printStats and print("\nDone!\n")
             break
 
         gameState.filterWords()
-        gameState.printState()
+        printStats and gameState.printState()
+    return attempts
 
 
 
