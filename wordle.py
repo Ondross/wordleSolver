@@ -15,8 +15,10 @@ class GameState(object):
         self.minLetterCounts = dict()     # yellow letters
         self.exactLetterCounts = dict()   # accumulation of greys
         self.answer = answer              # optional known answer
-        self.allWords = sorted(allWords, key=cmp_to_key(lambda a, b: self.sortCandidates(a, b)))
+        self.allWords = allWords
         self.candidates = self.allWords.copy()
+        self.lastUpdateCount = -1
+        self.updateLetterUsefulness()
         self.hardMode = hardMode
 
     def guess(self):
@@ -29,6 +31,9 @@ class GameState(object):
         if len(self.candidates) < 5 or self.hardMode:
             return self.candidates[0]
         else:
+            # Note: we use allWords instead of candidates here, because we might want to
+            # guess words that we know aren't candidates, if they give use more info.
+            self.updateLetterUsefulness()
             mostUseful = sorted(self.allWords, key=cmp_to_key(lambda a, b: self.sortCandidates(a, b)))
             return mostUseful[0]
 
@@ -50,15 +55,37 @@ class GameState(object):
     def sortCandidates(self, word1, word2):
         return self.wordUsefulness(word2) - self.wordUsefulness(word1)
 
+    def updateLetterUsefulness(self):
+        """
+        computes the histogram of letters in the remaining words
+        letter score is equal to -abs(frequency of appearance - .5) + .5, since the best
+        guesses are in 50% of words.
+        todo: what do we do about dupes? Count them as a separate, special token?
+        for now: just ignore dupes
+        idea: store them as {a: 10, aa: 2} signifying 2 words with double As.
+        """
+        if len(self.candidates) == self.lastUpdateCount:
+            return
+        letterHist = {}
+        for letter in letters:
+            letterHist[letter] = 0
+            for word in self.candidates:
+                if letter in word:
+                    letterHist[letter] += 1
+        
+        def score(frequency):
+            return -1 * abs(frequency - .5) + .5
+
+        self.lastUpdateCount = len(self.candidates)
+        self.letterValues = {letter: score(val/len(self.candidates)) for letter,val in letterHist.items()}
+
     def wordUsefulness(self, word):
         # for each letter that we don't have info about, a word gets points relative to how common the letter is in english
-        valuableLetters = "qjzxvkwyfbghmpduclsntoirae"
         letters = list(word) 
         score = 0
-        multipliers = self.letterMultipliers()
         for letter in letters:
             if letter not in self.wrongLocations[word.find(letter)]:
-                score += valuableLetters.find(letter) * multipliers[letter] / word.count(letter)
+                score += self.letterValues[letter] / word.count(letter)
 
         return score
 
