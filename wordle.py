@@ -50,7 +50,7 @@ class GameState(object):
     def sortCandidates(self, word1, word2):
         return self.wordUsefulness(word2) - self.wordUsefulness(word1)
 
-    def wordUsefulness(self, word, debug=False):
+    def wordUsefulness(self, word):
         # for each letter that we don't have info about, a word gets points relative to how common the letter is in english
         valuableLetters = "qjzxvkwyfbghmpduclsntoirae"
         letters = list(word) 
@@ -111,14 +111,14 @@ class GameState(object):
         Not used if we know the answer already (see autoUpdateState())
         """
         print("Input result:")
-        colors = input()
+        colors = input().lower().replace(' ', '')
 
         # make a temp version of this dict based only on the information we're getting here.
         tempMinLetterCounts = dict()
         for idx, color in enumerate(colors):
-            if color.lower() == "g":
+            if color == "g":
                 self.knownCorrect[idx] = guess[idx]
-            elif color.lower() == "y":
+            elif color == "y":
                 tempMinLetterCounts.setdefault(guess[idx], 0)
                 tempMinLetterCounts[guess[idx]] += 1
                 self.wrongLocations[idx].append(guess[idx])
