@@ -53,15 +53,12 @@ class GameState(object):
     def wordUsefulness(self, word, debug=False):
         # for each letter that we don't have info about, a word gets points relative to how common the letter is in english
         valuableLetters = "qjzxvkwyfbghmpduclsntoirae"
-        letters = set(word) # don't value duplicates
+        letters = list(word) 
         score = 0
         multipliers = self.letterMultipliers()
         for letter in letters:
             if letter not in self.wrongLocations[word.find(letter)]:
-                score += valuableLetters.find(letter) * multipliers[letter]
-
-            # if (word.lower() == 'scone' and letter == 'e'):
-            #     print(idx, letters, letter, letter in self.wrongLocations[idx])
+                score += valuableLetters.find(letter) * multipliers[letter] / word.count(letter)
 
         return score
 
@@ -108,7 +105,7 @@ class GameState(object):
 
         return True
 
-    def promptForResult(self):
+    def promptForResult(self, guess):
         """
         Ask the user what colors were returned by the Wordle web app.
         Not used if we know the answer already (see autoUpdateState())
@@ -171,7 +168,7 @@ def run(answer, hardMode, printStats=True):
         if answer:
             gameState.autoUpdateState(guess)
         else:
-            gameState.promptForResult()
+            gameState.promptForResult(guess)
 
         if gameState.done():
             printStats and print("\nDone!\n")
