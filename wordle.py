@@ -10,6 +10,7 @@ letters = "abcdefghijklmnopqrstuvwxyz"
 
 class GameState(object):
     def __init__(self, allWords, answer=None, hardMode=False):
+        self.done = False
         self.knownCorrect = ['*'] * 5     # green letters
         self.wrongLocations = [list() for i in range(5)]  # lists of letters not at that list's index
         self.minLetterCounts = dict()     # yellow letters
@@ -28,29 +29,14 @@ class GameState(object):
         where we know they belong in hopes of getting the answer right.
         Hard mode requires us to use words that match, and forego some opportunities for learning.
         """
-        if len(self.candidates) < 5 or self.hardMode:
-            return self.candidates[0]
-        else:
-            # Note: we use allWords instead of candidates here, because we might want to
-            # guess words that we know aren't candidates, if they give use more info.
-            self.updateLetterUsefulness()
-            mostUseful = sorted(self.allWords, key=cmp_to_key(lambda a, b: self.sortCandidates(a, b)))
-            return mostUseful[0]
 
-    def letterMultipliers(self):
-        """ When picking a word, letters are less valuable the more we already know about them. """
-        """ These numbers are admittedly pretty random. """
-        multipliers = {letter:1 for letter in letters}
+        choices = self.allWords
+        if len(self.candidates) < 3 or self.hardMode:
+            choices =  self.candidates
 
-        for letter in self.exactLetterCounts:
-            multipliers[letter] = 0
-        for letter in self.minLetterCounts:
-            multipliers[letter] = .9
-        for letter in self.knownCorrect:
-            multipliers[letter] = .5
-
-        return multipliers
-
+        self.updateLetterUsefulness()
+        mostUseful = sorted(choices, key=cmp_to_key(lambda a, b: self.sortCandidates(a, b)))
+        return mostUseful[0]
 
     def sortCandidates(self, word1, word2):
         return self.wordUsefulness(word2) - self.wordUsefulness(word1)
@@ -60,18 +46,22 @@ class GameState(object):
         computes the histogram of letters in the remaining words
         letter score is equal to -abs(frequency of appearance - .5) + .5, since the best
         guesses are in 50% of words.
-        todo: what do we do about dupes? Count them as a separate, special token?
-        for now: just ignore dupes
-        idea: store them as {a: 10, aa: 2} signifying 2 words with double As.
+        store dupes as {a: 10, aa: 2} signifying 2 words with double As (not necessarily consecutive).
         """
         if len(self.candidates) == self.lastUpdateCount:
             return
         letterHist = {}
         for letter in letters:
             letterHist[letter] = 0
+            letterHist[letter * 2] = 0
+            letterHist[letter * 3] = 0
             for word in self.candidates:
                 if letter in word:
-                    letterHist[letter] += 1
+                    for i in range(word.count(letter)):
+                        toAdd = 1
+                        if self.minLetterCounts.get(letter):
+                            toAdd = .1  # still somewhat worthwhile to find where it fits. Difficult to tune this number.
+                        letterHist[letter * (i + 1)] += toAdd
         
         def score(frequency):
             return -1 * abs(frequency - .5) + .5
@@ -83,14 +73,18 @@ class GameState(object):
         # for each letter that we don't have info about, a word gets points relative to how common the letter is in english
         letters = list(word) 
         score = 0
-        for letter in letters:
-            if letter not in self.wrongLocations[word.find(letter)]:
-                score += self.letterValues[letter] / word.count(letter)
+        for idx, letter in enumerate(letters):
+            knownWrongLocation = letter in self.wrongLocations[word.find(letter)]
+            knownRightLocation = self.knownCorrect[idx] == letter
+            if not knownWrongLocation and not knownRightLocation:
+                if idx == word.find(letter):
+                    score += self.letterValues[letter]
+                else:
+                    # it's the second time we're seeing this. probably less valuable.
+                    # todo: handle triples
+                    score += self.letterValues[letter * 2]
 
         return score
-
-    def done(self):
-        return self.knownCorrect.count('*') == 0
 
     def printState(self):
         print("".join(self.knownCorrect).upper())
@@ -141,10 +135,12 @@ class GameState(object):
         colors = input().lower().replace(' ', '')
 
         # make a temp version of this dict based only on the information we're getting here.
-        tempMinLetterCounts = dict()
+        tempMinLetterCounts = {}
+        numCorrect = 0
         for idx, color in enumerate(colors):
             if color == "g":
                 self.knownCorrect[idx] = guess[idx]
+                numCorrect += 1
             elif color == "y":
                 tempMinLetterCounts.setdefault(guess[idx], 0)
                 tempMinLetterCounts[guess[idx]] += 1
@@ -152,12 +148,16 @@ class GameState(object):
             else:
                 self.exactLetterCounts[guess[idx]] = tempMinLetterCounts.get(guess[idx]) or 0
 
+        if numCorrect == 5:
+            self.done = True
         for key in tempMinLetterCounts:
             self.minLetterCounts[key] = max(self.minLetterCounts.get(key) or 0, tempMinLetterCounts[key])
 
     def autoUpdateState(self, guess):
         """ Only used when we already know the answer and we're just demonstrating the program. """
-        self.minLetterCounts = {}
+        tempMinLetterCounts = {}
+        if guess == self.answer:
+            self.done = True
         for idx, letter in enumerate(guess):
             if self.answer[idx] == letter:
                 self.knownCorrect[idx] = letter
@@ -166,13 +166,15 @@ class GameState(object):
         for idx, letter in enumerate(guess):
             if tempAnswer.find(letter) >= 0:
                 tempAnswer = tempAnswer.replace(letter, '', 1)
-                self.minLetterCounts.setdefault(letter, 0)
-                self.minLetterCounts[letter] += 1
+                tempMinLetterCounts.setdefault(guess[idx], 0)
+                tempMinLetterCounts[guess[idx]] += 1
                 if self.answer[idx] != letter:
                     self.wrongLocations[idx].append(letter)
             else:
-                self.exactLetterCounts[letter] = self.minLetterCounts.get(letter) or 0
+                self.exactLetterCounts[letter] = tempMinLetterCounts.get(letter) or 0
 
+        for key in tempMinLetterCounts:
+            self.minLetterCounts[key] = max(self.minLetterCounts.get(key) or 0, tempMinLetterCounts[key])
 
 def run(answer, hardMode, printStats=True):
     """
@@ -197,7 +199,7 @@ def run(answer, hardMode, printStats=True):
         else:
             gameState.promptForResult(guess)
 
-        if gameState.done():
+        if gameState.done:
             printStats and print("\nDone!\n")
             break
 
